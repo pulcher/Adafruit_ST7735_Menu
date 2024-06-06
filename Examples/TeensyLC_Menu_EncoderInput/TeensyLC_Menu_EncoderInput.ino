@@ -43,21 +43,29 @@
 #include "Colors.h"
 #include <Encoder.h>
 
+// found in \Arduino\libraries\Adafruit-GFX-Library-master
+#include "fonts\FreeSans18pt7b.h"
+#include "fonts\FreeSans12pt7b.h"
+#include "fonts\FreeSansBold12pt7b.h"
+#include "fonts\FreeSansBold9pt7b.h"
+#include "fonts\FreeSans9pt7b.h"
+
 #define DATA_COLUMN 85
 
 // esp32 pinouts
-#define TFT_DC 9
+#define TFT_DC 8
 #define TFT_CS 10
-#define TFT_RST 8
+#define TFT_RST 9
 
 #define EN1_PIN 4
 #define EN2_PIN 5
 #define SE_PIN 6
 
 // easy way to include fonts but change globally
-#define FONT_MICRO 1  // font for menus
-#define FONT_SMALL 2  // font for menus
-#define FONT_TITLE 3  // font for menus
+#define FONT_SMALL      FreeSans9pt7b       // font for menus
+#define FONT_EDITTITLE  FreeSans18pt7b      // font for menus
+#define FONT_ITEM       FreeSans12pt7b      // font for menus
+#define FONT_TITLE      FreeSans18pt7b      // font for all headings
 
 #define DEBOUNCE 100
 
@@ -77,8 +85,6 @@
 #define MENU_HIGHLIGHTTEXT C_WHITE
 #define MENU_HIGHLIGHT C_RED
 #define MENU_HIGHBORDER C_DKRED
-
-
 
 #define MENU_DISABLE C_GREY
 
@@ -113,7 +119,7 @@ const char *OffOnItems[] = { "Off", "On" };
 const char *DataRateItems[] = { "300b", "1.2kb", "2.4kb", "4.8kb", "9.6kb", "19.2kb", "56kb" };
 
 // you know the drill
-Adafruit_ST7735 Display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+Adafruit_ST7735 Display = Adafruit_ST7735(&SPI, TFT_CS, TFT_DC, TFT_RST);
 
 // required, you must create either an Item menu (no inline editing) or an EditMenu (allows inline editing)
 //ClassName YourMenuName(&DisplayObject, True=Touch input, False(Default)=mechanical input);
@@ -139,36 +145,21 @@ void setup() {
   Display.initR(INITR_GREENTAB);
   Display.setRotation(1);
 
-  /*
-  while (1) {
-
-    long newPosition = encoder.read();
-    if (newPosition != oldPosition) {
-      oldPosition = newPosition;
-      Serial.println(newPosition);
-    }
-    if (digitalRead(SE_PIN) == LOW) {
-      Serial.println("button press");
-    }
-    delay(100);
-  }
-*/
-
-  MainMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, 30, 3, "Main", FONT_SMALL, FONT_TITLE);
+  MainMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, 20, 3, "Main", FONT_SMALL, FONT_TITLE);
 
   MenuOption1 = MainMenu.addNI("Options");
   MenuOption2 = MainMenu.addNI("Wireless");
   MenuOption3 = MainMenu.addNI("Servos");
 
   MainMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
-  MainMenu.setTitleBarSize(0, 0, 160, 30);
-  MainMenu.setTitleTextMargins(10, 5);
+  MainMenu.setTitleBarSize(0, 0, 160, 35);
+  MainMenu.setTitleTextMargins(10, 28);
   MainMenu.setMenuBarMargins(0, 160, 2, 1);
-  MainMenu.setItemTextMargins(10, 10, 5);
+  MainMenu.setItemTextMargins(10, 15, 5);
   MainMenu.setItemColors(C_GREY, MENU_SELECTBORDER);
 
   OptionMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT,
-                  DATA_COLUMN, 30, 3, "Options", FONT_SMALL, FONT_TITLE);
+                  DATA_COLUMN, 20, 3, "Options", FONT_SMALL, FONT_TITLE);
 
   int addNI(const char *ItemText, float Data, float LowLimit, float HighLimit,
             float Increment, byte DecimalPlaces = 0, const char **ItemMenuText = NULL);
@@ -180,27 +171,29 @@ void setup() {
   OptionMenu.SetItemValue(OptionOption1, 0.12);
   OptionMenu.SetItemValue(OptionOption3, 1);
   OptionMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
-  OptionMenu.setTitleBarSize(0, 0, 160, 30);
-  OptionMenu.setTitleTextMargins(10, 5);
-  OptionMenu.setItemTextMargins(10, 10, 5);
+  OptionMenu.setTitleBarSize(0, 0, 160, 35);
+  OptionMenu.setTitleTextMargins(10, 28);
   OptionMenu.setMenuBarMargins(0, 160, 2, 1);
+  OptionMenu.setItemTextMargins(10, 15, 5);
+
   OptionMenu.setItemColors(C_GREY, MENU_SELECTBORDER, MENU_HIGHBORDER);
 
   WirelessMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT,
-                    DATA_COLUMN, 30, 3, "Wireless Menu", FONT_SMALL, FONT_TITLE);
+                    DATA_COLUMN, 20, 4, "WiFi", FONT_SMALL, FONT_TITLE);
   WirelessOption1 = WirelessMenu.addNI("Address", 0, 0, 255, 1, 0);
   WirelessOption2 = WirelessMenu.addNI("Data", 2, 0, sizeof(DataRateItems) / sizeof(DataRateItems[0]), 1, 0, DataRateItems);
   WirelessOption3 = WirelessMenu.addNI("Air", 2, 0, sizeof(DataRateItems) / sizeof(DataRateItems[0]), 1, 0, DataRateItems);
   WirelessOption4 = WirelessMenu.addNI("Error", 1, 0, sizeof(OffOnItems) / sizeof(OffOnItems[0]), 1, 0, OffOnItems);
 
-  WirelessMenu.setTitleBarSize(0, 0, 160, 30);
-  WirelessMenu.setTitleTextMargins(10, 5);
-  WirelessMenu.setItemTextMargins(10, 10, 5);
+  WirelessMenu.setTitleBarSize(0, 0, 160, 35);
+  WirelessMenu.setTitleTextMargins(10, 28);
   WirelessMenu.setMenuBarMargins(0, 160, 2, 1);
+  WirelessMenu.setItemTextMargins(10, 15, 5);
   WirelessMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
   WirelessMenu.setItemColors(C_GREY, MENU_SELECTBORDER, MENU_HIGHBORDER);
+
   ServoMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT,
-                 DATA_COLUMN, 15, 6, "Servos", FONT_MICRO, FONT_SMALL);
+                 DATA_COLUMN, 20, 4, "Servos", FONT_SMALL, FONT_ITEM);
   ServoMenu1 = ServoMenu.addNI("Address", 0, 0, 255, 1, 0);
   ServoMenu2 = ServoMenu.addNI("Prec", 2, 0, sizeof(PrecisionItems) / sizeof(PrecisionItems[0]), 1, 0, PrecisionItems);
   ServoMenu3 = ServoMenu.addNI("Tune", 2, 0, sizeof(TuneItems) / sizeof(TuneItems[0]), 1, 0, TuneItems);
@@ -208,10 +201,10 @@ void setup() {
   ServoMenu5 = ServoMenu.addNI("Tune", 2, 0, sizeof(TuneItems) / sizeof(TuneItems[0]), 1, 0, TuneItems);
   ServoMenu6 = ServoMenu.addNI("State", 1, 0, sizeof(OffOnItems) / sizeof(OffOnItems[0]), 1, 0, OffOnItems);
 
-  ServoMenu.setTitleBarSize(0, 0, 160, 30);
-  ServoMenu.setTitleTextMargins(10, 5);
-  ServoMenu.setItemTextMargins(10, 5, 2);
-  ServoMenu.setMenuBarMargins(0, 160, 0, 0);
+  ServoMenu.setTitleBarSize(0, 0, 160, 35);
+  ServoMenu.setTitleTextMargins(10, 28);
+  ServoMenu.setMenuBarMargins(0, 160, 2, 1);
+  ServoMenu.setItemTextMargins(10, 15, 5);
   ServoMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
   ServoMenu.setItemColors(C_GREY, MENU_SELECTBORDER, MENU_HIGHBORDER);
 
